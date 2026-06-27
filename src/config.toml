@@ -1,0 +1,51 @@
+# MySQL 配置
+[mysql]
+host = "127.0.0.1"
+port = 3306
+user = "root"               
+password = "wjs17726470537."        
+database = "subjects_kg"
+
+# Redis 配置
+[redis]
+host = "127.0.0.1"
+port = 6379                 
+password = "wjs414967707."
+db = 0                     
+
+# Milvus 配置
+[milvus]
+host = "127.0.0.1" 
+port = 19530                
+db_name = "itcast"    
+collection_name = "edurag"  
+
+# Elasticsearch 配置
+[elasticsearch]
+host = "127.0.0.1"
+port = 9200
+index_name = "medical_qa"
+
+# LLM 配置
+[llm]
+model = "deepseek-v4-flash"                  
+api_key = "sk-d2874cb013704833982de93d9387701f" 
+base_url = "https://api.deepseek.com"
+
+# 检索参数配置
+[retrieval]
+parent_chunk_size = 512    
+child_chunk_size = 128     
+chunk_overlap = 50         
+retrieval_k = 5            
+# 每个匹配到的子块向上召回多少个对应的父文档候选块
+candidate_m = 3            
+
+# 日志配置
+[logger]
+log_file = "src/logs/app.log"  
+
+# 应用配置
+[app]
+valid_sources = ["ai", "java", "test", "ops", "bigdata"]   # TOML 原生数组
+customer_service_phone = "13575008699"  
