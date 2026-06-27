@@ -27,8 +27,6 @@ class MedicalQAStore:
             if not await self._es.ping():
                 raise MedicalQAStoreError(f"ES 无响应: {url}")
             logger.info(f"ES 连接成功: {url}")
-        except MedicalQAStoreError:
-            raise
         except Exception as e:
             logger.error(f"ES 连接失败: {e}", exc_info=True)
             raise MedicalQAStoreError(f"ES 连接失败: {e}") from e
@@ -177,7 +175,7 @@ class MedicalQAStore:
 
         except Exception as e:
             logger.error(f"ES 搜索异常: {e}", exc_info=True)
-            return []
+            raise MedicalQAStoreError(f"搜索失败: {e}") from e
 
     # ── 管理 ──
 
