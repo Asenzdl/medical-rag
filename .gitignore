@@ -22,7 +22,13 @@ src/bert/*.data
 src/bert/*.bin
 src/bert/*.pth
 
+# Embedding 模型文件 (只保留代码)
+src/embeddings/model/
+src/embeddings/onnx/
+
 # 其他不需要的文件
 src/bert/ort_engine.py
 src/bert/optimum_engine.py
 src/logs/
+
+docs/
