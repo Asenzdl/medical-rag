@@ -10,6 +10,19 @@ wheels/
 .venv
 .history/
 data/
-src/bert/model/
 .env
 think_code/
+
+# BERT 模型文件 (只保留代码)
+src/bert/model/
+src/bert/onnx/
+src/bert/*.trt
+src/bert/*.onnx
+src/bert/*.data
+src/bert/*.bin
+src/bert/*.pth
+
+# 其他不需要的文件
+src/bert/ort_engine.py
+src/bert/optimum_engine.py
+src/logs/
