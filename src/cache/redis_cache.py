@@ -27,7 +27,12 @@ Redis 异步缓存封装
 
 import json
 from typing import Any
+import numpy as np
 import redis.asyncio as redis
+from redis.commands.search.field import VectorField, TextField, TagField
+from redis.commands.search.index_definition import IndexDefinition, IndexType
+from redis.commands.search.query import Query
+from redis.exceptions import ResponseError
 
 from src.base import setup_logger
 from src.base.config import RedisConfig
@@ -202,6 +207,179 @@ class RedisCache:
             logger.error(f"Redis EXISTS 失败 (key={key}): {e}", exc_info=True)
             raise RedisCacheError(f"Redis EXISTS 失败: {e}") from e
 
+    # ── 向量搜索 ──
+
+    async def create_vector_index(
+        self,
+        index_name: str,
+        prefix: str = "qa:",
+        dim: int = 768
+    ) -> bool:
+        """
+        创建向量索引
+
+        Args:
+            index_name: 索引名称
+            prefix: key 前缀
+            dim: embedding 维度
+
+        Returns:
+            是否创建成功
+        """
+        try:
+            # 1. 定义 Schema
+            schema = (
+                TextField("question"),  # 普通文本字段
+                TagField("category"),  # 标签字段 (用于过滤)
+                VectorField("embedding",  # 向量字段
+                    algorithm="HNSW",
+                    attributes={
+                        "TYPE": "FLOAT32",
+                        "DIM": dim,
+                        "DISTANCE_METRIC": "COSINE"
+                    }
+                )
+            )
+
+            # 2. 创建索引
+            await self._redis.ft(index_name).create_index(
+                schema,
+                definition=IndexDefinition(
+                    prefix=[prefix],
+                    index_type=IndexType.HASH
+                )
+            )
+
+            logger.info(f"向量索引创建成功: {index_name}")
+            return True
+
+        except ResponseError as e:
+            if "Index already exists" in str(e):
+                logger.debug(f"向量索引已存在: {index_name}")
+                return True
+            logger.error(f"创建向量索引失败: {e}", exc_info=True)
+            raise RedisCacheError(f"创建向量索引失败: {e}") from e
+        except Exception as e:
+            logger.error(f"创建向量索引失败: {e}", exc_info=True)
+            raise RedisCacheError(f"创建向量索引失败: {e}") from e
+
+    async def vector_search(
+        self,
+        index_name: str,
+        embedding: list[float],
+        top_k: int = 1,
+        filters: dict[str, str] | None = None
+    ) -> list[dict]:
+        """
+        向量搜索 (支持标量过滤)
+
+        Args:
+            index_name: 索引名称
+            embedding: 查询向量
+            top_k: 返回结果数量
+            filters: 标量过滤条件 {"category": "内科"}
+
+        Returns:
+            相似结果列表 [{id, question, result, score}, ...]
+        """
+        try:
+            # 1. 构建过滤条件
+            if filters:
+                filter_str = " ".join(f"@{k}:{{{v}}}" for k, v in filters.items())
+                query_str = f"{filter_str}=>[KNN {top_k} @embedding $vec AS score]"
+            else:
+                query_str = f"*=>[KNN {top_k} @embedding $vec AS score]"
+
+            # 2. 构建查询
+            query = (
+                Query(query_str)
+                .sort_by("score")
+                .dialect(2)
+            )
+
+            # 3. 转换 embedding 为 bytes
+            embedding_bytes = np.array(embedding, dtype=np.float32).tobytes()
+
+            # 4. 执行向量搜索 (只返回需要的字段，排除 embedding 二进制数据)
+            query = query.return_fields("question", "result", "score")
+            results = await self._redis.ft(index_name).search(
+                query,
+                query_params={"vec": embedding_bytes}
+            )
+
+            # 5. 解析结果
+            parsed_results = []
+            for doc in results.docs:
+                try:
+                    parsed_results.append({
+                        "id": doc.id,
+                        "question": doc.question,
+                        "result": json.loads(doc.result),
+                        "score": float(doc.score)
+                    })
+                except (json.JSONDecodeError, AttributeError) as e:
+                    logger.warning(f"解析结果失败: {e}")
+                    continue
+            return parsed_results
+
+        except Exception as e:
+            logger.error(f"Redis VECTOR_SEARCH 失败: {e}", exc_info=True)
+            raise RedisCacheError(f"Redis VECTOR_SEARCH 失败: {e}") from e
+
+    async def set_with_embedding(
+        self,
+        key: str,
+        question: str,
+        result: dict,
+        embedding: list[float],
+        category: str | None = None,
+        ttl: int | None = None
+    ) -> bool:
+        """
+        存储带 embedding 的缓存
+
+        Args:
+            key: 缓存 key
+            question: 问题文本
+            result: 缓存结果
+            embedding: 问题向量
+            category: 科室分类 (用于过滤)
+            ttl: 过期时间 (秒)
+
+        Returns:
+            是否设置成功
+        """
+        try:
+            # 1. 转换 embedding 为 bytes
+            embedding_bytes = np.array(embedding, dtype=np.float32).tobytes()
+
+            # 2. 序列化 result 为 JSON
+            result_json = json.dumps(result, ensure_ascii=False)
+
+            # 3. 构建数据
+            data = {
+                "question": question,
+                "result": result_json,
+                "embedding": embedding_bytes
+            }
+
+            # 4. 添加 category (如果有)
+            if category:
+                data["category"] = category
+
+            # 5. 存储数据
+            await self._redis.hset(key, mapping=data)
+
+            # 6. 设置 TTL
+            if ttl:
+                await self._redis.expire(key, ttl)
+
+            return True
+
+        except Exception as e:
+            logger.error(f"Redis SET_WITH_EMBEDDING 失败 (key={key}): {e}", exc_info=True)
+            raise RedisCacheError(f"Redis SET_WITH_EMBEDDING 失败: {e}") from e
+
 
 if __name__ == "__main__":
     import asyncio
@@ -214,19 +392,52 @@ if __name__ == "__main__":
         cache = RedisCache(config.redis)
         await cache.connect()
 
-        # 测试基本操作
-        await cache.set("test:key1", {"name": "测试", "value": 123}, ttl=60)
-        result = await cache.get("test:key1")
-        print(f"GET 结果: {result}")
+        #############################################
+        # 普通文本操作
+        # # 测试基本操作
+        # await cache.set("test:key1", {"name": "测试", "value": 123}, ttl=60)
+        # result = await cache.get("test:key1")
+        # print(f"GET 结果: {result}")
 
-        # 测试存在性
-        exists = await cache.exists("test:key1")
-        print(f"EXISTS: {exists}")
+        # # 测试存在性
+        # exists = await cache.exists("test:key1")
+        # print(f"EXISTS: {exists}")
 
-        # 测试删除
-        await cache.delete("test:key1")
-        exists = await cache.exists("test:key1")
-        print(f"DELETE 后 EXISTS: {exists}")
+        # # 测试删除
+        # await cache.delete("test:key1")
+        # exists = await cache.exists("test:key1")
+        # print(f"DELETE 后 EXISTS: {exists}")
+        #############################################
+        
+        # 测试向量索引创建 (需要 Redis Stack)
+        await cache.create_vector_index(
+            index_name="qa_semantic_cache",
+            prefix="qa:",
+            dim=768
+        )
+        print("向量索引创建成功")
+
+        # 测试存储带 embedding 的缓存 (需要 Redis Stack)
+        await cache.set_with_embedding(
+            key="qa:test1",
+            question="高血压怎么治疗",
+            result={"intent": {"label": "内科"}, "results": [{"title": "高血压治疗"}]},
+            embedding=[0.1] * 768,  # 模拟 embedding
+            category="内科",  # 添加 category 字段
+            ttl=3600
+        )
+        print("带 embedding 的缓存存储成功")
+
+        # 测试向量搜索 (需要 Redis Stack)
+        results = await cache.vector_search(
+            index_name="qa_semantic_cache",
+            embedding=[0.1] * 768,  # 模拟 embedding
+            top_k=5,
+            filters={"category": "内科"}
+        )
+        print(f"找到 {len(results)} 个相似结果")
+        for result in results:
+            print(f"  - {result['question']} (score: {result['score']})")
 
         # 关闭连接
         await cache.close()
