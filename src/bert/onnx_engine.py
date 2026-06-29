@@ -4,13 +4,11 @@ ONNX Runtime 推理引擎（用于 BERT 意图识别）
 使用 HuggingFace Optimum + Pipeline 实现优雅的推理接口。
 """
 
-import time
 from pathlib import Path
 from optimum.onnxruntime import ORTModelForSequenceClassification
 from transformers import pipeline, AutoTokenizer
-from src.base.logger import setup_logger
-
-logger = setup_logger("OnnxRuntimeEngine")
+from loguru import logger
+from src.base.log_config import log_latency
 
 # Provider 映射
 PROVIDER_MAP = {
@@ -23,7 +21,7 @@ class OnnxRuntimeEngine:
     """ONNX Runtime 推理引擎（用于 BERT 意图识别）"""
 
     def __init__(self, model_dir: str, tokenizer, provider: str = "cpu",
-                 label_map: dict[str, int] | None = None, log_latency: bool = False):
+                 label_map: dict[str, int] | None = None):
         """
         初始化 ONNX Runtime 引擎
 
@@ -32,14 +30,12 @@ class OnnxRuntimeEngine:
             tokenizer: 已加载的 tokenizer 实例
             provider: 推理设备（"cpu", "cuda"）
             label_map: 标签映射 {"内科": 1, ...}，用于将 LABEL_X 转为可读名称
-            log_latency: 是否记录每次推理耗时
         """
         self.model_dir = Path(model_dir)
         self.tokenizer = tokenizer
         self.provider = PROVIDER_MAP.get(provider, provider)
-        self.log_latency = log_latency
 
-        logger.info(f"正在加载模型: {self.model_dir} (Provider={self.provider})")
+        logger.debug(f"正在加载模型: {self.model_dir} (Provider={self.provider})")
 
         # 使用 Optimum 加载 ONNX 模型
         self.model = ORTModelForSequenceClassification.from_pretrained(
@@ -64,6 +60,7 @@ class OnnxRuntimeEngine:
 
         logger.info("模型加载完成")
 
+    @log_latency
     def predict(self, text: str) -> dict:
         """
         预测意图
@@ -73,12 +70,7 @@ class OnnxRuntimeEngine:
         Returns:
             {"label": "内科", "score": 0.95}
         """
-        start = time.perf_counter()
-        result = self.classifier(text)[0]
-        if self.log_latency:
-            elapsed = (time.perf_counter() - start) * 1000
-            logger.info(f"推理耗时: {elapsed:.2f}ms | 输入: {text[:30]}...")
-        return result
+        return self.classifier(text)[0]
 
 
 if __name__ == "__main__":

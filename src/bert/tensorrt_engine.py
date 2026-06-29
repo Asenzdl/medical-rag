@@ -4,21 +4,18 @@ TensorRT 推理引擎（用于 BERT 意图识别）
 基于 trt_sdk.py 的高性能 GPU 推理。
 """
 
-import time
 import numpy as np
 import torch
 from pathlib import Path
+from loguru import logger
+from src.base.log_config import log_latency
 from src.bert.trt_sdk import TRT11InferenceEngine
-from src.base.logger import setup_logger
-
-logger = setup_logger("TensorRTEngine")
 
 
 class TensorRTEngine:
     """TensorRT 推理引擎（仅支持 GPU）"""
 
-    def __init__(self, model_dir: str, tokenizer, label_map: dict[str, int] | None = None,
-                 log_latency: bool = False):
+    def __init__(self, model_dir: str, tokenizer, label_map: dict[str, int] | None = None):
         """
         初始化 TensorRT 引擎
 
@@ -26,11 +23,9 @@ class TensorRTEngine:
             model_dir: TRT 引擎文件所在目录（包含 model.trt）
             tokenizer: 已加载的 tokenizer 实例
             label_map: 标签映射 {"内科": 1, ...}，用于将 LABEL_X 转为可读名称
-            log_latency: 是否记录每次推理耗时
         """
         self.model_dir = Path(model_dir)
         self.tokenizer = tokenizer
-        self.log_latency = log_latency
         # 反转为 {0: "内科", 1: "外科", ...}
         self.id2label = {v: k for k, v in label_map.items()} if label_map else None
 
@@ -39,10 +34,11 @@ class TensorRTEngine:
         if not engine_path.exists():
             raise FileNotFoundError(f"未找到 TRT 引擎文件: {engine_path}")
 
-        logger.info(f"正在加载 TRT 引擎: {engine_path}")
+        logger.debug(f"正在加载 TRT 引擎: {engine_path}")
         self.engine = TRT11InferenceEngine(str(engine_path))
         logger.info(f"TRT 引擎加载完成 (输入={list(self.engine.input_specs.keys())})")
 
+    @log_latency
     def predict(self, text: str) -> dict:
         """
         预测意图
@@ -52,8 +48,6 @@ class TensorRTEngine:
         Returns:
             {"label": "内科", "score": 0.95}
         """
-        start = time.perf_counter()
-
         # tokenize
         inputs = self.tokenizer(
             [text],
@@ -79,10 +73,6 @@ class TensorRTEngine:
         label_id = prob.argmax().item()
         score = prob[label_id].item()
         label = self.id2label[label_id] if self.id2label else f"LABEL_{label_id}"
-
-        if self.log_latency:
-            elapsed = (time.perf_counter() - start) * 1000
-            logger.info(f"推理耗时: {elapsed:.2f}ms | 输入: {text[:30]}...")
 
         return {"label": label, "score": score}
 

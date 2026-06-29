@@ -34,10 +34,9 @@ from redis.commands.search.index_definition import IndexDefinition, IndexType
 from redis.commands.search.query import Query
 from redis.exceptions import ResponseError
 
-from src.base import setup_logger
+from loguru import logger
+from src.base.log_config import log_latency
 from src.base.config import RedisConfig
-
-logger = setup_logger("RedisCache")
 
 
 class RedisCacheError(Exception):
@@ -129,6 +128,7 @@ class RedisCache:
 
     # ── 基本操作 ──
 
+    @log_latency
     async def get(self, key: str) -> Any | None:
         """
         获取缓存
@@ -151,6 +151,7 @@ class RedisCache:
             logger.error(f"Redis GET 失败 (key={key}): {e}", exc_info=True)
             raise RedisCacheError(f"Redis GET 失败: {e}") from e
 
+    @log_latency
     async def set(self, key: str, value: Any, ttl: int | None = None) -> bool:
         """
         设置缓存
@@ -174,6 +175,7 @@ class RedisCache:
             logger.error(f"Redis SET 失败 (key={key}): {e}", exc_info=True)
             raise RedisCacheError(f"Redis SET 失败: {e}") from e
 
+    @log_latency
     async def delete(self, key: str) -> bool:
         """
         删除缓存
@@ -191,6 +193,7 @@ class RedisCache:
             logger.error(f"Redis DELETE 失败 (key={key}): {e}", exc_info=True)
             raise RedisCacheError(f"Redis DELETE 失败: {e}") from e
 
+    @log_latency
     async def exists(self, key: str) -> bool:
         """
         检查 key 是否存在

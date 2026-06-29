@@ -1,9 +1,8 @@
 from elasticsearch import AsyncElasticsearch
 
-from src.base import setup_logger
+from loguru import logger
+from src.base.log_config import log_latency
 from src.base.config import ElasticsearchConfig
-
-logger = setup_logger("ESClient")
 
 
 class ESClientError(Exception):
@@ -107,6 +106,7 @@ class ESClient:
 
     # ── 查询 ──
 
+    @log_latency
     async def search(
         self,
         query: str,

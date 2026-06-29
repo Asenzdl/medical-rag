@@ -30,3 +30,5 @@ src/embeddings/onnx/
 src/bert/ort_engine.py
 src/bert/optimum_engine.py
 src/logs/
+docs/
+.ruff_cache/
