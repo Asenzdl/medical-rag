@@ -1,1 +1,1 @@
-from .store import MedicalQAStore, MedicalQAStoreError
+from .store import ESClient, ESClientError

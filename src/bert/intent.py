@@ -60,6 +60,8 @@ def create_bert_engine(
     tokenizer_dir: str,
     backend: str = "auto",
     provider: str = "cpu",
+    label_map: dict[str, int] | None = None,
+    log_latency: bool = False,
 ) -> BertEngine:
     """
     创建 BERT 意图识别引擎（工厂函数）
@@ -69,6 +71,8 @@ def create_bert_engine(
         tokenizer_dir: Tokenizer 目录
         backend: 推理后端（"auto", "onnx", "tensorrt"）
         provider: 推理设备（"cpu", "cuda"），仅 ONNX Runtime 生效
+        label_map: 标签映射 {"内科": 1, ...}，用于将 LABEL_X 转为可读名称
+        log_latency: 是否记录每次推理耗时
     Returns:
         BertEngine 实例（OnnxRuntimeEngine 或 TensorRTEngine）
     """
@@ -92,10 +96,10 @@ def create_bert_engine(
     # 创建引擎
     if backend == "tensorrt":
         from src.bert.tensorrt_engine import TensorRTEngine
-        return TensorRTEngine(model_dir, tokenizer)
+        return TensorRTEngine(model_dir, tokenizer, label_map=label_map, log_latency=log_latency)
     else:
         from src.bert.onnx_engine import OnnxRuntimeEngine
-        return OnnxRuntimeEngine(model_dir, tokenizer, provider)
+        return OnnxRuntimeEngine(model_dir, tokenizer, provider, label_map=label_map, log_latency=log_latency)
 
 
 if __name__ == "__main__":
@@ -116,49 +120,35 @@ if __name__ == "__main__":
     print("BERT 意图识别统一接口测试")
     print("=" * 60)
 
+    def bench(engine, name):
+        _ = engine.predict("预热")  # 预热
+        start = time.perf_counter()
+        for text in test_texts:
+            result = engine.predict(text)
+            print(f"  {text} → {result}")
+        elapsed = (time.perf_counter() - start) * 1000
+        print(f"  耗时: {elapsed:.2f}ms")
+        return elapsed
+
     # 测试 ONNX Runtime CPU
     print("\n--- ONNX Runtime CPU ---")
-    engine_cpu = create_bert_engine(MODEL_DIR, TOKENIZER_DIR, backend="onnx", provider="cpu")
-    _ = engine_cpu.predict(["预热"])  # 预热
-    start = time.perf_counter()
-    results = engine_cpu.predict(test_texts)
-    cpu_time = (time.perf_counter() - start) * 1000
-    for text, result in zip(test_texts, results):
-        print(f"  {text} → {result}")
-    print(f"  耗时: {cpu_time:.2f}ms")
+    engine_cpu = create_bert_engine(MODEL_DIR, TOKENIZER_DIR, backend="cpu", provider="cpu", log_latency=True)
+    cpu_time = bench(engine_cpu, "ONNX CPU")
 
     # 测试 ONNX Runtime GPU
     print("\n--- ONNX Runtime GPU ---")
-    engine_gpu = create_bert_engine(MODEL_DIR, TOKENIZER_DIR, backend="onnx", provider="cuda")
-    _ = engine_gpu.predict(["预热"])  # 预热
-    start = time.perf_counter()
-    results = engine_gpu.predict(test_texts)
-    gpu_time = (time.perf_counter() - start) * 1000
-    for text, result in zip(test_texts, results):
-        print(f"  {text} → {result}")
-    print(f"  耗时: {gpu_time:.2f}ms")
+    engine_gpu = create_bert_engine(MODEL_DIR, TOKENIZER_DIR, backend="onnx", provider="cuda", log_latency=True)
+    gpu_time = bench(engine_gpu, "ONNX GPU")
 
     # 测试 TensorRT
     print("\n--- TensorRT ---")
-    engine_trt = create_bert_engine(MODEL_DIR, TOKENIZER_DIR, backend="tensorrt")
-    _ = engine_trt.predict(["预热"])  # 预热
-    start = time.perf_counter()
-    results = engine_trt.predict(test_texts)
-    trt_time = (time.perf_counter() - start) * 1000
-    for text, result in zip(test_texts, results):
-        print(f"  {text} → {result}")
-    print(f"  耗时: {trt_time:.2f}ms")
+    engine_trt = create_bert_engine(MODEL_DIR, TOKENIZER_DIR, backend="tensorrt", log_latency=True)
+    trt_time = bench(engine_trt, "TensorRT")
 
     # 测试自动选择
     print("\n--- 自动选择后端 ---")
-    engine_auto = create_bert_engine(MODEL_DIR, TOKENIZER_DIR)
-    _ = engine_auto.predict(["预热"])  # 预热
-    start = time.perf_counter()
-    results = engine_auto.predict(test_texts)
-    auto_time = (time.perf_counter() - start) * 1000
-    for text, result in zip(test_texts, results):
-        print(f"  {text} → {result}")
-    print(f"  耗时: {auto_time:.2f}ms")
+    engine_auto = create_bert_engine(MODEL_DIR, TOKENIZER_DIR, log_latency=True)
+    auto_time = bench(engine_auto, "自动选择")
 
     # 性能对比
     print("\n" + "=" * 60)

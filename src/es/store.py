@@ -3,15 +3,15 @@ from elasticsearch import AsyncElasticsearch
 from src.base import setup_logger
 from src.base.config import ElasticsearchConfig
 
-logger = setup_logger("MedicalQAStore")
+logger = setup_logger("ESClient")
 
 
-class MedicalQAStoreError(Exception):
-    """医疗问答 ES 存储层统一异常"""
+class ESClientError(Exception):
+    """ES 客户端统一异常"""
 
 
-class MedicalQAStore:
-    """医疗问答数据的 ES 异步存储层，封装索引管理和 CRUD"""
+class ESClient:
+    """Elasticsearch 异步客户端，封装索引管理和 CRUD"""
 
     def __init__(self, config: ElasticsearchConfig):
         self._host = config.host
@@ -25,11 +25,11 @@ class MedicalQAStore:
         self._es = AsyncElasticsearch(url)
         try:
             if not await self._es.ping():
-                raise MedicalQAStoreError(f"ES 无响应: {url}")
+                raise ESClientError(f"ES 无响应: {url}")
             logger.info(f"ES 连接成功: {url}")
         except Exception as e:
             logger.error(f"ES 连接失败: {e}", exc_info=True)
-            raise MedicalQAStoreError(f"ES 连接失败: {e}") from e
+            raise ESClientError(f"ES 连接失败: {e}") from e
 
     async def close(self) -> None:
         """关闭连接"""
@@ -54,7 +54,7 @@ class MedicalQAStore:
             return await self._es.indices.exists(index=self._index)
         except Exception as e:
             logger.error(f"检查索引失败: {e}", exc_info=True)
-            raise MedicalQAStoreError(f"检查索引失败: {e}") from e
+            raise ESClientError(f"检查索引失败: {e}") from e
 
     async def create_index(self) -> None:
         """创建索引（含 IK 分词配置和 mapping），已存在则跳过"""
@@ -91,7 +91,7 @@ class MedicalQAStore:
             logger.info(f"索引创建成功: {self._index}")
         except Exception as e:
             logger.error(f"索引创建失败: {e}", exc_info=True)
-            raise MedicalQAStoreError(f"索引创建失败: {e}") from e
+            raise ESClientError(f"索引创建失败: {e}") from e
 
     async def delete_index(self) -> None:
         """删除索引，不存在则跳过"""
@@ -103,7 +103,7 @@ class MedicalQAStore:
             logger.info(f"索引删除成功: {self._index}")
         except Exception as e:
             logger.error(f"索引删除失败: {e}", exc_info=True)
-            raise MedicalQAStoreError(f"索引删除失败: {e}") from e
+            raise ESClientError(f"索引删除失败: {e}") from e
 
     # ── 查询 ──
 
@@ -175,7 +175,7 @@ class MedicalQAStore:
 
         except Exception as e:
             logger.error(f"ES 搜索异常: {e}", exc_info=True)
-            raise MedicalQAStoreError(f"搜索失败: {e}") from e
+            raise ESClientError(f"搜索失败: {e}") from e
 
     # ── 管理 ──
 
@@ -186,7 +186,7 @@ class MedicalQAStore:
             return result["count"]
         except Exception as e:
             logger.error(f"查询文档总数失败: {e}", exc_info=True)
-            raise MedicalQAStoreError(f"查询文档总数失败: {e}") from e
+            raise ESClientError(f"查询文档总数失败: {e}") from e
 
 
 if __name__ == "__main__":
@@ -195,7 +195,7 @@ if __name__ == "__main__":
 
     async def main():
         config = load_config()
-        async with MedicalQAStore(config.elasticsearch) as store:
+        async with ESClient(config.elasticsearch) as store:
             info = await store._es.info()
             logger.info(f"ES 版本: {info['version']['number']}")
 

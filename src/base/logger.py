@@ -1,6 +1,12 @@
+import sys
 from pathlib import Path
 import logging
 from logging.handlers import RotatingFileHandler
+
+# Windows 终端 UTF-8 输出
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
 
 SRC_PATH = Path(__file__).resolve().parent.parent
 LOG_PATH = SRC_PATH / "logs" / "app.log"

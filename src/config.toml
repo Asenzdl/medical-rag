@@ -48,4 +48,19 @@ log_file = "src/logs/app.log"
 # 应用配置
 [app]
 valid_sources = ["ai", "java", "test", "ops", "bigdata"]   # TOML 原生数组
-customer_service_phone = "13575008699"  
+customer_service_phone = "13575008699"
+
+# BERT 意图识别配置
+[bert]
+model_dir = "src/bert/onnx/chinese-roberta-wwm-ext-distilled-27745/none"
+tokenizer_dir = "src/bert/model/chinese-roberta-wwm-ext-distilled-27745"
+backend = "auto"
+provider = "cuda"
+
+[bert.label_map]
+"儿科" = 0
+"内科" = 1
+"外科" = 2
+"妇产科" = 3
+"男科" = 4
+"肿瘤科" = 5

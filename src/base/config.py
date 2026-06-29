@@ -52,7 +52,15 @@ class AppConfig(BaseModel):
     valid_sources: list[str]
     customer_service_phone: str
 
+class BertConfig(BaseModel):
+    model_dir: str
+    tokenizer_dir: str
+    backend: str = "auto"
+    provider: str = "cuda"
+    label_map: dict[str, int] = {}
+
 class Config(BaseModel):
+    bert: BertConfig
     mysql: MysqlConfig
     redis: RedisConfig
     milvus: MilvusConfig
@@ -61,7 +69,7 @@ class Config(BaseModel):
     retrieval: RetrievalConfig
     logger: LoggerConfig
     app: AppConfig
-    
+
 def load_config(path: Path = CONFIG_PATH) -> Config:
     config_toml = tomllib.loads(path.read_text(encoding="utf-8"))
     return Config.model_validate(config_toml)

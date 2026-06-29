@@ -18,3 +18,101 @@ ask
 ask
   String should have at least 2 characters [type=string_too_short, input_value='无', input_type=str]
     For further information visit https://errors.pydantic.dev/2.13/v/string_too_short
+2026-06-28 01:40:26,439 - BuildEngine - ERROR - ONNX 解析错误: In node -1 with name:  and operator:  (parseGraph): INVALID_GRAPH: Failed to import initializer: In node -1 with name:  and operator:  (parseGraph): UNSUPPORTED_NODE: Assertion failed: ctx->getWeightsContext().convertOnnxWeights(initializer, &weights): Failed to import initializer: ernie.embeddings.word_embeddings.weight
+2026-06-28 16:38:09,289 - RedisCache - ERROR - Redis VECTOR_SEARCH 失败: name 'Query' is not defined
+Traceback (most recent call last):
+  File "d:\wjs\program\cc\medical-RAG\src\cache\redis_cache.py", line 293, in vector_search
+    Query(query_str)
+    ^^^^^
+NameError: name 'Query' is not defined
+2026-06-28 16:52:40,276 - RedisCache - ERROR - Redis VECTOR_SEARCH 失败: 'utf-8' codec can't decode byte 0xcd in position 0: invalid continuation byte
+Traceback (most recent call last):
+  File "D:\wjs\program\cc\medical-RAG\src\cache\redis_cache.py", line 304, in vector_search
+    results = await self._redis.ft(index_name).search(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wjs\program\cc\medical-RAG\.venv\Lib\site-packages\redis\commands\search\commands.py", line 1781, in search
+    res = await self.execute_command(SEARCH_CMD, *args, **options)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wjs\program\cc\medical-RAG\.venv\Lib\site-packages\redis\asyncio\client.py", line 840, in execute_command
+    result = await conn.retry.call_with_retry(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wjs\program\cc\medical-RAG\.venv\Lib\site-packages\redis\asyncio\retry.py", line 69, in call_with_retry
+    return await do()
+           ^^^^^^^^^^
+  File "D:\wjs\program\cc\medical-RAG\.venv\Lib\site-packages\redis\asyncio\client.py", line 781, in _send_command_parse_response
+    return await self.parse_response(conn, command_name, **options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wjs\program\cc\medical-RAG\.venv\Lib\site-packages\redis\asyncio\client.py", line 882, in parse_response
+    response = await connection.read_response()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wjs\program\cc\medical-RAG\.venv\Lib\site-packages\redis\asyncio\connection.py", line 783, in read_response
+    response = await self._parser.read_response(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wjs\program\cc\medical-RAG\.venv\Lib\site-packages\redis\_parsers\resp3.py", line 185, in read_response
+    response = await self._read_response(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wjs\program\cc\medical-RAG\.venv\Lib\site-packages\redis\_parsers\resp3.py", line 263, in _read_response
+    resp_dict[key] = await self._read_response(
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wjs\program\cc\medical-RAG\.venv\Lib\site-packages\redis\_parsers\resp3.py", line 244, in _read_response
+    (await self._read_response(disable_decoding=disable_decoding))
+     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wjs\program\cc\medical-RAG\.venv\Lib\site-packages\redis\_parsers\resp3.py", line 263, in _read_response
+    resp_dict[key] = await self._read_response(
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wjs\program\cc\medical-RAG\.venv\Lib\site-packages\redis\_parsers\resp3.py", line 263, in _read_response
+    resp_dict[key] = await self._read_response(
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wjs\program\cc\medical-RAG\.venv\Lib\site-packages\redis\_parsers\resp3.py", line 288, in _read_response
+    response = self.encoder.decode(response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wjs\program\cc\medical-RAG\.venv\Lib\site-packages\redis\_parsers\encoders.py", line 43, in decode
+    value = value.decode(self.encoding, self.encoding_errors)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcd in position 0: invalid continuation byte
+2026-06-28 16:53:44,360 - RedisCache - ERROR - Redis VECTOR_SEARCH 失败: 'utf-8' codec can't decode byte 0xcd in position 0: invalid continuation byte
+Traceback (most recent call last):
+  File "D:\wjs\program\cc\medical-RAG\src\cache\redis_cache.py", line 304, in vector_search
+    results = await self._redis.ft(index_name).search(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wjs\program\cc\medical-RAG\.venv\Lib\site-packages\redis\commands\search\commands.py", line 1781, in search
+    res = await self.execute_command(SEARCH_CMD, *args, **options)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wjs\program\cc\medical-RAG\.venv\Lib\site-packages\redis\asyncio\client.py", line 840, in execute_command
+    result = await conn.retry.call_with_retry(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wjs\program\cc\medical-RAG\.venv\Lib\site-packages\redis\asyncio\retry.py", line 69, in call_with_retry
+    return await do()
+           ^^^^^^^^^^
+  File "D:\wjs\program\cc\medical-RAG\.venv\Lib\site-packages\redis\asyncio\client.py", line 781, in _send_command_parse_response
+    return await self.parse_response(conn, command_name, **options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wjs\program\cc\medical-RAG\.venv\Lib\site-packages\redis\asyncio\client.py", line 882, in parse_response
+    response = await connection.read_response()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wjs\program\cc\medical-RAG\.venv\Lib\site-packages\redis\asyncio\connection.py", line 783, in read_response
+    response = await self._parser.read_response(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wjs\program\cc\medical-RAG\.venv\Lib\site-packages\redis\_parsers\resp3.py", line 185, in read_response
+    response = await self._read_response(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wjs\program\cc\medical-RAG\.venv\Lib\site-packages\redis\_parsers\resp3.py", line 263, in _read_response
+    resp_dict[key] = await self._read_response(
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wjs\program\cc\medical-RAG\.venv\Lib\site-packages\redis\_parsers\resp3.py", line 244, in _read_response
+    (await self._read_response(disable_decoding=disable_decoding))
+     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wjs\program\cc\medical-RAG\.venv\Lib\site-packages\redis\_parsers\resp3.py", line 263, in _read_response
+    resp_dict[key] = await self._read_response(
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wjs\program\cc\medical-RAG\.venv\Lib\site-packages\redis\_parsers\resp3.py", line 263, in _read_response
+    resp_dict[key] = await self._read_response(
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wjs\program\cc\medical-RAG\.venv\Lib\site-packages\redis\_parsers\resp3.py", line 288, in _read_response
+    response = self.encoder.decode(response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wjs\program\cc\medical-RAG\.venv\Lib\site-packages\redis\_parsers\encoders.py", line 43, in decode
+    value = value.decode(self.encoding, self.encoding_errors)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0xcd in position 0: invalid continuation byte
+2026-06-28 16:55:22,530 - RedisCache - WARNING - 解析结果失败: 'Document' object has no attribute 'score'
